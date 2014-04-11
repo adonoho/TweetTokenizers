@@ -100,9 +100,9 @@ regex_strings = (
     ,
     # Emoticons:
     emoticon_string
-    ,    
-	#URLs, Patch from <https://bitbucket.org/jaganadhg/twittertokenize>
-	r"""(?:http[s]?://t.co/[a-zA-Z0-9]+)"""
+    ,
+    #URLs, Patch from <https://bitbucket.org/jaganadhg/twittertokenize>
+    r"""(?:http[s]?://t.co/[a-zA-Z0-9]+)"""
     ,
     # # HTML tags:
     # r"""(?:<[^>]+>)"""
@@ -154,7 +154,7 @@ class PottsTweetTokenizer:
         """
         Argument: tweet -- any string object.
         Value: a tokenized list of strings; concatenating this list returns the original string if preserve_case=True
-        """        
+        """
         # Fix HTML character entitites:
         tweet = self._html2unicode(tweet)
         # Tokenize:
@@ -194,10 +194,10 @@ class PottsTweetTokenizer:
         ents = filter((lambda x: x != amp), ents)
         for ent in ents:
             entname = ent[1:-1]
-            try:            
+            try:
                 tweet = tweet.replace(ent, chr(html.entities.name2codepoint[entname]))
             except:
-                pass                    
+                pass
             tweet = tweet.replace(amp, " and ")
         return tweet
 
