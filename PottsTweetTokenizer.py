@@ -75,6 +75,9 @@ emoticon_string = r"""
       [:;=8]                     # eyes
       [<>]?
     )"""
+# Twitter symbols/cashtags:  # Added by awd, 20140410.
+# Based upon Twitter's regex described here: <https://blog.twitter.com/2013/symbols-entities-tweets>.
+cashtag_string = r"""(?:\$[a-zA-Z]{1,6}([._][a-zA-Z]{1,2})?)"""
 
 # The components of the tokenizer:
 regex_strings = (
@@ -98,17 +101,20 @@ regex_strings = (
     # Emoticons:
     emoticon_string
     ,    
-    # HTML tags:
-     r"""<[^>]+>"""
+	#URLs, Patch from <https://bitbucket.org/jaganadhg/twittertokenize>
+	r"""(?:http[s]?://t.co/[a-zA-Z0-9]+)"""
     ,
+    # # HTML tags:
+    # r"""(?:<[^>]+>)"""
+    # ,
     # Twitter username:
     r"""(?:@[\w_]+)"""
     ,
     # Twitter hashtags:
     r"""(?:\#+[\w_]+[\w\'_\-]*[\w_]+)"""
     ,
-    # Twitter symbols/cashtags:  # Added by awd, 20140410.
-    r"""(?:\$[a-zA-Z]{1,6}([._][a-zA-Z]{1,2})?)"""
+    # Twitter cashtags:
+    cashtag_string
     ,
     # Remaining word types:
     r"""
@@ -129,8 +135,9 @@ regex_strings = (
     
 word_re = re.compile(r"""(%s)""" % "|".join(regex_strings), re.VERBOSE | re.I | re.UNICODE)
 
-# The emoticon string gets its own regex so that we can preserve case for them as needed:
-emoticon_re = re.compile(regex_strings[1], re.VERBOSE | re.I | re.UNICODE)
+# The emoticon and cashtag strings get their own regex so that we can preserve case for them as needed:
+emoticon_re = re.compile(emoticon_string, re.VERBOSE | re.I | re.UNICODE)
+cashtag_re = re.compile(cashtag_string, re.VERBOSE | re.I | re.UNICODE)
 
 # These are for regularizing HTML entities to Unicode:
 html_entity_digit_re = re.compile(r"&#\d+;")
@@ -149,59 +156,50 @@ class PottsTweetTokenizer:
         Value: a tokenized list of strings; concatenating this list returns the original string if preserve_case=True
         """        
         # Fix HTML character entitites:
-        tweet = self.__html2unicode(tweet)
+        tweet = self._html2unicode(tweet)
         # Tokenize:
-        words = word_re.findall(tweet)
-        # Possible alter the case, but avoid changing emoticons like :D into :d:
-        if not self.preserve_case:            
-            words = map((lambda x : x if emoticon_re.search(x) else x.lower()), words)
-        return words
+        matches = word_re.finditer(tweet)
+        if self.preserve_case:
+            return [match.group() for match in matches]
+        # Possibly alter the case, but avoid changing emoticons like :D into :d:
+        return [self._normalize_token(match.group()) for match in matches]
 
-    # def tokenize_random_tweet(self):
-    #     """
-    #     If the twitter library is installed and a twitter connection
-    #     can be established, then tokenize a random tweet.
-    #     """
-    #     try:
-    #         import twitter
-    #     except ImportError:
-    #         print("Apologies. The random tweet functionality requires the Python twitter library: http://code.google.com/p/python-twitter/")
-    #     from random import shuffle
-    #     api = twitter.Api()
-    #     tweets = api.GetPublicTimeline()
-    #     if tweets:
-    #         for tweet in tweets:
-    #             if tweet.user.lang == 'en':
-    #                 return self.tokenize(tweet.text)
-    #     else:
-    #         raise Exception("Apologies. I couldn't get Twitter to give me a public English-language tweet. Perhaps try again")
+    @staticmethod
+    def _normalize_token(token: str) -> str:
 
-    def __html2unicode(self, s):
+        if emoticon_re.search(token):
+            return token
+        if token.startswith('$') and cashtag_re.search(token):
+            return token.upper()
+        return token.lower()
+
+    @staticmethod
+    def _html2unicode(tweet: str) -> str:
         """
         Internal method that seeks to replace all the HTML entities in
-        s with their corresponding unicode characters.
+        tweet with their corresponding unicode characters.
         """
         # First the digits:
-        ents = set(html_entity_digit_re.findall(s))
+        ents = set(html_entity_digit_re.findall(tweet))
         if len(ents) > 0:
             for ent in ents:
                 entnum = ent[2:-1]
                 try:
                     entnum = int(entnum)
-                    s = s.replace(ent, chr(entnum))
+                    tweet = tweet.replace(ent, chr(entnum))
                 except:
                     pass
         # Now the alpha versions:
-        ents = set(html_entity_alpha_re.findall(s))
-        ents = filter((lambda x : x != amp), ents)
+        ents = set(html_entity_alpha_re.findall(tweet))
+        ents = filter((lambda x: x != amp), ents)
         for ent in ents:
             entname = ent[1:-1]
             try:            
-                s = s.replace(ent, chr(html.entities.name2codepoint[entname]))
+                tweet = tweet.replace(ent, chr(html.entities.name2codepoint[entname]))
             except:
                 pass                    
-            s = s.replace(amp, " and ")
-        return s
+            tweet = tweet.replace(amp, " and ")
+        return tweet
 
 ###############################################################################
 
@@ -210,7 +208,8 @@ if __name__ == '__main__':
     samples = (
         u"RT @ #happyfuncoding: this is a typical Twitter tweet :-)",
         u"HTML entities &amp; other Web oddities can be an &aacute;cute <em class='grumpy'>pain</em> >:(",
-        u"It's perhaps noteworthy that phone numbers like +1 (800) 123-4567, (800) 123-4567, and 123-4567 are treated as words despite their whitespace."
+        u"It's perhaps noteworthy that phone numbers like +1 (800) 123-4567, (800) 123-4567, and 123-4567 are treated as words despite their whitespace.",
+        u"$AAPL, http://t.co/asdFGH01, and $GOOG, &lt;https://t.co/asdFGH02&gt;, are battling it out through Google's proxy, Samsung."
         )
 
     for s in samples:
