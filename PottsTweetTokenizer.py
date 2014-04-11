@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -47,7 +47,7 @@ __email__ = "See the author's website"
 ######################################################################
 
 import re
-import htmlentitydefs
+import html.entities
 
 ######################################################################
 # The following strings are components in the regular expression
@@ -107,6 +107,9 @@ regex_strings = (
     # Twitter hashtags:
     r"""(?:\#+[\w_]+[\w\'_\-]*[\w_]+)"""
     ,
+    # Twitter symbols/cashtags:  # Added by awd, 20140410.
+    r"""(?:\$[a-zA-Z]{1,6}([._][a-zA-Z]{1,2})?)"""
+    ,
     # Remaining word types:
     r"""
     (?:[a-z][a-z'\-_]+[a-z])       # Words with apostrophes or dashes.
@@ -136,52 +139,46 @@ amp = "&amp;"
 
 ######################################################################
 
-class Tokenizer:
-    def __init__(self, preserve_case=False):
+class PottsTweetTokenizer:
+    def __init__(self, *, preserve_case=False):
         self.preserve_case = preserve_case
 
-    def tokenize(self, s):
+    def tokenize(self, tweet: str) -> list:
         """
-        Argument: s -- any string or unicode object
-        Value: a tokenize list of strings; conatenating this list returns the original string if preserve_case=False
+        Argument: tweet -- any string object.
+        Value: a tokenized list of strings; concatenating this list returns the original string if preserve_case=True
         """        
-        # Try to ensure unicode:
-        try:
-            s = unicode(s)
-        except UnicodeDecodeError:
-            s = str(s).encode('string_escape')
-            s = unicode(s)
         # Fix HTML character entitites:
-        s = self.__html2unicode(s)
+        tweet = self.__html2unicode(tweet)
         # Tokenize:
-        words = word_re.findall(s)
+        words = word_re.findall(tweet)
         # Possible alter the case, but avoid changing emoticons like :D into :d:
         if not self.preserve_case:            
             words = map((lambda x : x if emoticon_re.search(x) else x.lower()), words)
         return words
 
-    def tokenize_random_tweet(self):
-        """
-        If the twitter library is installed and a twitter connection
-        can be established, then tokenize a random tweet.
-        """
-        try:
-            import twitter
-        except ImportError:
-            print "Apologies. The random tweet functionality requires the Python twitter library: http://code.google.com/p/python-twitter/"
-        from random import shuffle
-        api = twitter.Api()
-        tweets = api.GetPublicTimeline()
-        if tweets:
-            for tweet in tweets:
-                if tweet.user.lang == 'en':            
-                    return self.tokenize(tweet.text)
-        else:
-            raise Exception("Apologies. I couldn't get Twitter to give me a public English-language tweet. Perhaps try again")
+    # def tokenize_random_tweet(self):
+    #     """
+    #     If the twitter library is installed and a twitter connection
+    #     can be established, then tokenize a random tweet.
+    #     """
+    #     try:
+    #         import twitter
+    #     except ImportError:
+    #         print("Apologies. The random tweet functionality requires the Python twitter library: http://code.google.com/p/python-twitter/")
+    #     from random import shuffle
+    #     api = twitter.Api()
+    #     tweets = api.GetPublicTimeline()
+    #     if tweets:
+    #         for tweet in tweets:
+    #             if tweet.user.lang == 'en':
+    #                 return self.tokenize(tweet.text)
+    #     else:
+    #         raise Exception("Apologies. I couldn't get Twitter to give me a public English-language tweet. Perhaps try again")
 
     def __html2unicode(self, s):
         """
-        Internal metod that seeks to replace all the HTML entities in
+        Internal method that seeks to replace all the HTML entities in
         s with their corresponding unicode characters.
         """
         # First the digits:
@@ -191,7 +188,7 @@ class Tokenizer:
                 entnum = ent[2:-1]
                 try:
                     entnum = int(entnum)
-                    s = s.replace(ent, unichr(entnum))	
+                    s = s.replace(ent, chr(entnum))
                 except:
                     pass
         # Now the alpha versions:
@@ -200,7 +197,7 @@ class Tokenizer:
         for ent in ents:
             entname = ent[1:-1]
             try:            
-                s = s.replace(ent, unichr(htmlentitydefs.name2codepoint[entname]))
+                s = s.replace(ent, chr(html.entities.name2codepoint[entname]))
             except:
                 pass                    
             s = s.replace(amp, " and ")
@@ -209,7 +206,7 @@ class Tokenizer:
 ###############################################################################
 
 if __name__ == '__main__':
-    tok = Tokenizer(preserve_case=False)
+    tok = PottsTweetTokenizer()
     samples = (
         u"RT @ #happyfuncoding: this is a typical Twitter tweet :-)",
         u"HTML entities &amp; other Web oddities can be an &aacute;cute <em class='grumpy'>pain</em> >:(",
@@ -217,7 +214,7 @@ if __name__ == '__main__':
         )
 
     for s in samples:
-        print "======================================================================"
-        print s
+        print("======================================================================")
+        print(s)
         tokenized = tok.tokenize(s)
-        print "\n".join(tokenized)
+        print("\n".join(tokenized))
