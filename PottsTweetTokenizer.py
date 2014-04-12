@@ -101,12 +101,12 @@ regex_strings = (
     # Emoticons:
     emoticon_string
     ,
-    #URLs, Patch from <https://bitbucket.org/jaganadhg/twittertokenize>
+    # HTML tags:
+    r"""(?:<[^>]+>)"""
+    ,
+    #URLs
     r"""(?:http[s]?://t.co/[a-zA-Z0-9]+)"""
     ,
-    # # HTML tags:
-    # r"""(?:<[^>]+>)"""
-    # ,
     # Twitter username:
     r"""(?:@[\w_]+)"""
     ,
@@ -147,7 +147,7 @@ amp = "&amp;"
 ######################################################################
 
 class PottsTweetTokenizer:
-    def __init__(self, *, preserve_case=False):
+    def __init__(self, *, preserve_case: bool=False):
         self.preserve_case = preserve_case
 
     def tokenize(self, tweet: str) -> list:
@@ -161,13 +161,13 @@ class PottsTweetTokenizer:
         matches = word_re.finditer(tweet)
         if self.preserve_case:
             return [match.group() for match in matches]
-        # Possibly alter the case, but avoid changing emoticons like :D into :d:
         return [self._normalize_token(match.group()) for match in matches]
 
     @staticmethod
     def _normalize_token(token: str) -> str:
 
         if emoticon_re.search(token):
+            # Avoid changing emoticons like :D into :d
             return token
         if token.startswith('$') and cashtag_re.search(token):
             return token.upper()
