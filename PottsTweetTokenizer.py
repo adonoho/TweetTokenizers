@@ -39,7 +39,7 @@ English-language tweet.
 __author__ = "Christopher Potts"
 __copyright__ = "Copyright 2011, Christopher Potts"
 __credits__ = []
-__license__ = "Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License: http://creativecommons.org/licenses/by-nc-sa/3.0/"
+__license__ = "Creative Commons Attribution 3.0 Unported (CC BY 3.0): http://creativecommons.org/licenses/by/3.0/"
 __version__ = "1.0"
 __maintainer__ = "Christopher Potts"
 __email__ = "See the author's website"
@@ -113,7 +113,7 @@ regex_strings = (
     # Twitter hashtags:
     r"""(?:\#+[\w_]+[\w\'_\-]*[\w_]+)"""
     ,
-    # Twitter cashtags:
+    # Twitter symbols/cashtags:
     cashtag_string
     ,
     # Remaining word types:
