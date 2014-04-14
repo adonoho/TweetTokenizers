@@ -104,7 +104,7 @@ regex_strings = (
     # HTML tags:
     r"""(?:<[^>]+>)"""
     ,
-    #URLs
+    # URLs:
     r"""(?:http[s]?://t.co/[a-zA-Z0-9]+)"""
     ,
     # Twitter username:
@@ -146,7 +146,7 @@ amp = "&amp;"
 
 ######################################################################
 
-class PottsTweetTokenizer:
+class TweetTokenizer(object):
     def __init__(self, *, preserve_case: bool=False):
         self.preserve_case = preserve_case
 
@@ -204,7 +204,7 @@ class PottsTweetTokenizer:
 ###############################################################################
 
 if __name__ == '__main__':
-    tok = PottsTweetTokenizer()
+    tokenizer = TweetTokenizer()
     samples = (
         u"RT @ #happyfuncoding: this is a typical Twitter tweet :-)",
         u"HTML entities &amp; other Web oddities can be an &aacute;cute <em class='grumpy'>pain</em> >:(",
@@ -215,5 +215,5 @@ if __name__ == '__main__':
     for s in samples:
         print("======================================================================")
         print(s)
-        tokenized = tok.tokenize(s)
-        print("\n".join(tokenized))
+        tokens = tokenizer.tokenize(s)
+        print("\n".join(tokens))
